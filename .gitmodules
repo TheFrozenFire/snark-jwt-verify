@@ -1,0 +1,6 @@
+[submodule "circom-rsa-verify"]
+	path = circom-rsa-verify
+	url = https://github.com/zkp-application/circom-rsa-verify
+[submodule "circomlib"]
+	path = circomlib
+	url = https://github.com/iden3/circomlib.git

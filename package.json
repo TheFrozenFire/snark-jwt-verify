@@ -1,0 +1,34 @@
+{
+  "name": "snark-jwt-verify",
+  "version": "1.0.0",
+  "description": "Verify JWTs using SNARK circuits",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --max-old-space-size=16000 -t 10000s"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheFrozenFire/snark-jwt-verify.git"
+  },
+  "keywords": [
+    "circuit",
+    "circom",
+    "zksnark",
+    "rsa",
+    "jwt",
+    "openid"
+  ],
+  "author": "thefrozenfire",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TheFrozenFire/snark-jwt-verify/issues"
+  },
+  "homepage": "https://github.com/TheFrozenFire/snark-jwt-verify#readme",
+  "dependencies": {
+    "circom": "^0.5.45",
+    "node-rsa": "^1.1.1"
+  },
+  "devDependencies": {
+    "snarkjs": "^0.4.7"
+  }
+}
