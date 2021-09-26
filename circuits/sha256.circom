@@ -1,9 +1,25 @@
 include "../circomlib/circuits/sha256/constants.circom";
 include "../circomlib/circuits/sha256/sha256compression.circom";
-include "quinSelector.circom";
+include "../circomlib/circuits/comparators.circom";
+
+// This circuit returns the sum of the inputs.
+// n must be greater than 0.
+template CalculateTotal(n) {
+    signal input nums[n];
+    signal output sum;
+
+    signal sums[n];
+    sums[0] <== nums[0];
+
+    for (var i=1; i < n; i++) {
+        sums[i] <== sums[i - 1] + nums[i];
+    }
+
+    sum <== sums[n - 1];
+}
 
 template Sha256_unsafe(nBlocks) {
-    signal input dBlocks;
+    signal input tBlock;
     signal input in[nBlocks][512];
     signal output out[256];
 
@@ -54,18 +70,29 @@ template Sha256_unsafe(nBlocks) {
             sha256compression[i].inp[k] <== in[i][k];
         }
     }
+    
+    // Collapse the hashing result at the terminating data block
+    // A modified Quin Selector allows us to select the block based on the tBlock signal
+    component calcTotal[256];
+    component eqs[256][nBlocks];
 
-    component selector = QuinSelector(nBlocks, 8);
-    selector.index <== dBlocks - 1;
-    
-    for (i=0; i<nBlocks; i++) {
-        selector.in[i] <== i;
-    }
-    
+    // For each bit of the output
     for (k=0; k<256; k++) {
-        out[k] <== sha256compression[selector.out][k];
+        calcTotal[k] = CalculateTotal(nBlocks);
+        
+        // For each possible block
+        for (var i = 0; i < nBlocks; i++) {
+            // Determine if the given block index is equal to the terminating data block index
+            eqs[k][i] = IsEqual();
+            eqs[k][i].in[0] <== i;
+            eqs[k][i].in[1] <== tBlock;
+
+            // eqs[k][i].out is 1 if the index matches. As such, at most one input to calcTotal is not 0.
+            // The bit corresponding to the terminating data block will be raised
+            calcTotal[k].nums[i] <== eqs[k][i].out * sha256compression[i].out[k];
+        }
+        
+        out[k] <== calcTotal[k].sum;
     }
 
 }
-
-component main = Sha256_unsafe(20);
