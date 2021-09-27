@@ -85,7 +85,7 @@ template Sha256_unsafe(nBlocks) {
             // Determine if the given block index is equal to the terminating data block index
             eqs[k][i] = IsEqual();
             eqs[k][i].in[0] <== i;
-            eqs[k][i].in[1] <== tBlock;
+            eqs[k][i].in[1] <== tBlock - 1;
 
             // eqs[k][i].out is 1 if the index matches. As such, at most one input to calcTotal is not 0.
             // The bit corresponding to the terminating data block will be raised
