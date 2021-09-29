@@ -4,85 +4,44 @@ const snarkjs = require("snarkjs");
 const assert = chai.assert;
 const crypto = require("crypto");
 const jose = require("node-jose");
+const fs = require('fs');
 
 const tester = require("circom").tester;
 
-function buffer2bitArray(b) {
-    const res = [];
-    for (let i=0; i<b.length; i++) {
-        for (let j=0; j<8; j++) {
-            res.push((b[i] >> (7-j) &1));
-        }
-    }
-    return res;
-}
-
-function bitArray2buffer(a) {
-    const len = Math.floor((a.length -1 )/8)+1;
-    const b = new Buffer.alloc(len);
-
-    for (let i=0; i<a.length; i++) {
-        const p = Math.floor(i/8);
-        b[p] = b[p] | (Number(a[i]) << ( 7 - (i%8)  ));
-    }
-    return b;
-}
-
-// https://datatracker.ietf.org/doc/html/rfc4634#section-4.1
-function padMessage(bits) {
-    const length = bits.length;
-    const padLen = 512 - (length % 512);
-    if(padLen == 0 || padLen == 512) {
-        return bits;
-    }
-    
-    bits = bits.concat([1]);
-    bits = bits.concat(Array(padLen - 65).fill(0));
-    bits = bits.concat(buffer2bitArray(Buffer.from(length.toString(16).padStart(16, '0'), 'hex')))
-    
-    return bits;
-}
-
-function array_chunk(array, chunk_size) {
-    return Array(Math.ceil(array.length / chunk_size)).fill().map((_, index) => index * chunk_size).map(begin => array.slice(begin, begin + chunk_size));
-}
-
-function genBlocks(input, nBlocks) {
-    const blocks = array_chunk(padMessage(buffer2bitArray(input)), 512);
-    return [blocks.concat(Array(nBlocks-blocks.length).fill(Array(512).fill(0))), blocks.length];
-}
+const utils = require("../js/utils");
 
 describe("Unsafe SHA256", () => {
     const nBlocks = 20;
-    const hexBytesToBlock = 512/2/8;
+    const hexBytesToBlock = 512/8/2;
     var cir;
     
     before(async() => {
         cir = await tester(path.join(__dirname, "circuits", "sha256.circom"));
+        cir.loadSymbols();
     });
 
     it("Hashing produces expected output for filled blocks", async () => {
-        const input = crypto.randomBytes(nBlocks * hexBytesToBlock).toString("hex");
+        const input = crypto.randomBytes((nBlocks * hexBytesToBlock)-100).toString("hex");
         const hash = crypto.createHash("sha256").update(input).digest("hex");
 
-        const [blocks, tBlock] = genBlocks(input, nBlocks);
+        const inputs = utils.genInputs(input, nBlocks);
         
-        const witness = await cir.calculateWitness({ "in": blocks, "tBlock": tBlock }, true);
+        const witness = await cir.calculateWitness(inputs, true);
         
-        const hash2 = bitArray2buffer(witness.slice(1,257)).toString("hex");
+        const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.out").toString("hex");
         
         assert.equal(hash, hash2);
     });
     
     it("Hashing produces expected output for partial last block", async () => {
-        const input = crypto.randomBytes((nBlocks * hexBytesToBlock)-32).toString("hex");
+        const input = crypto.randomBytes((nBlocks * hexBytesToBlock)-100).toString("hex");
         const hash = crypto.createHash("sha256").update(input).digest("hex");
 
-        const [blocks, tBlock] = genBlocks(input, nBlocks);
+        const inputs = utils.genInputs(input, nBlocks);
         
-        const witness = await cir.calculateWitness({ "in": blocks, "tBlock": tBlock }, true);
+        const witness = await cir.calculateWitness(inputs, true);
         
-        const hash2 = bitArray2buffer(witness.slice(1,257)).toString("hex");
+        const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.out").toString("hex");
         
         assert.equal(hash, hash2);
     });
@@ -91,12 +50,28 @@ describe("Unsafe SHA256", () => {
         const input = crypto.randomBytes((nBlocks-8) * hexBytesToBlock).toString("hex");
         const hash = crypto.createHash("sha256").update(input).digest("hex");
 
-        const [blocks, tBlock] = genBlocks(input, nBlocks);
+        const inputs = utils.genInputs(input, nBlocks);
         
-        const witness = await cir.calculateWitness({ "in": blocks, "tBlock": tBlock }, true);
+        const witness = await cir.calculateWitness(inputs, true);
         
-        const hash2 = bitArray2buffer(witness.slice(1,257)).toString("hex");
+        const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.out").toString("hex");
         
         assert.equal(hash, hash2);
     });
 });
+
+/*
+it("Hashing produces expected output", async () => {
+        var nBlocks = 20;
+
+        const input = Buffer.from('eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InBldmpiYS1welhGU0ZDcnRTYlg5SyJ9.eyJnaXZlbl9uYW1lIjoiSnVzdGluIiwiZmFtaWx5X25hbWUiOiJNYXJ0aW4iLCJuaWNrbmFtZSI6ImZyb3plbmZpcmUiLCJuYW1lIjoiSnVzdGluIE1hcnRpbiIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS0vQU9oMTRHaFEwRGdQQUt6bTVIOEdqemMyTkd5X3RRWGExWnUzaHQtZ1B3N2g4dz1zOTYtYyIsImdlbmRlciI6Im1hbGUiLCJsb2NhbGUiOiJlbi1HQiIsInVwZGF0ZWRfYXQiOiIyMDIxLTA5LTIzVDIwOjQ2OjIyLjQ3MVoiLCJlbWFpbCI6ImZyb3plbmZpcmVAdGhlZnJvemVuZmlyZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6Ly9kZXYtOWg0N2FqYzkudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTEwNDA3OTYxOTUzNzMyMzcxOTg4IiwiYXVkIjoiVDE1ZTY0NmI0dWhBcnl5b2o0R05Sb242enM0TXJIRlYiLCJpYXQiOjE2MzI0Mjk5ODMsImV4cCI6MTYzMjQ2NTk4Mywibm9uY2UiOiJ0ZXN0aWZ5In0');
+
+        var blocks = array_chunk(padMessage(buffer2bitArray(input)), 512);
+        
+        const witness = await cir.calculateWitness({ "in": blocks.concat(Array(nBlocks-blocks.length).fill(Array(512).fill(0))), "tBlock": blocks.length }, true);
+        
+        const arrOut = witness.slice(1,257);
+        const hash2 = bitArray2buffer(arrOut).toString("hex");
+        
+        console.log(hash2);
+    });*/
