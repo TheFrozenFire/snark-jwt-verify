@@ -1,10 +1,7 @@
 const chai = require("chai");
 const path = require("path");
-const snarkjs = require("snarkjs");
 const assert = chai.assert;
 const crypto = require("crypto");
-const jose = require("node-jose");
-const fs = require('fs');
 
 const tester = require("circom").tester;
 
