@@ -19,13 +19,13 @@ template CalculateTotal(n) {
 }
 
 template Sha256_unsafe(nBlocks) {
-    signal input tBlock;
     signal input in[nBlocks][512];
+    signal input tBlock;
+    
     signal output out[256];
 
     var i;
     var k;
-    var b;
 
     component ha0 = H(0);
     component hb0 = H(1);
