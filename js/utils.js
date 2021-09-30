@@ -25,7 +25,8 @@ function arrayChunk(array, chunk_size) {
 }
 
 function genInputs(input, nBlocks) {
-    var blocks = arrayChunk(padMessage(buffer2bitArray(Buffer.from(input))), 512);
+    var blocks = arrayChunk(padMessage(buffer2BitArray(Buffer.from(input))), 512);
+    const tBlock = blocks.length;
     if(blocks.length < nBlocks) {
         blocks = blocks.concat(Array(nBlocks-blocks.length).fill(Array(512).fill(0)))
     }
@@ -34,11 +35,11 @@ function genInputs(input, nBlocks) {
         throw new Error('Padded message exceeds maximum blocks supported by circuit');
     }
     
-    return { "in": blocks , "tBlock": blocks.length };
+    return { "in": blocks , "tBlock": tBlock };
 }
 
 function getWitnessBuffer(witness, symbols, arrName) {
-    return bitArray2buffer(Object.entries(symbols).filter(([index, symbol]) => index.startsWith(arrName)).map(([index, symbol]) => witness[symbol['varIdx']] ));
+    return bitArray2Buffer(Object.entries(symbols).filter(([index, symbol]) => index.startsWith(arrName)).map(([index, symbol]) => witness[symbol['varIdx']] ));
 }
 
 module.exports = {
