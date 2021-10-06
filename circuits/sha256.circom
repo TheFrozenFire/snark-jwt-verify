@@ -18,6 +18,19 @@ template CalculateTotal(n) {
     sum <== sums[n - 1];
 }
 
+// SHA256 Unsafe
+// Calculates the SHA256 hash of the input, using a signal to select the output round corresponding to the number of
+// non-empty input blocks. This implementation is referred to as "unsafe", as it relies upon the caller to ensure that
+// the input is padded correctly, and to ensure that the tBlock input corresponds to the actual terminating data block.
+// Crafted inputs could result in Length Extension Attacks.
+//
+// Inputs:
+// - in:     An array of blocks exactly nBlocks in length, each block containing an array of exactly 512 bits.
+//           Padding of the input according to RFC4634 Section 4.1 is left to the caller.
+//           Blocks following tBlock must be supplied, and *should* contain all zeroes
+// - tBlock: An integer corresponding to the terminating block of the input, which contains the message padding
+// Outputs:
+// - out:    An array of 256 bits corresponding to the SHA256 output as of the terminating block
 template Sha256_unsafe(nBlocks) {
     signal input in[nBlocks][512];
     signal input tBlock;
