@@ -1,3 +1,5 @@
+const bigInt = require("big-integer");
+
 function buffer2BitArray(b) {
     return [].concat(...Array.from(b.entries()).map(([index, byte]) => byte.toString(2).padStart(8, '0').split('').map(bit => bit == '1' ? 1 : 0) ))
 }
@@ -40,6 +42,21 @@ function genInputs(input, nBlocks) {
 
 function getWitnessBuffer(witness, symbols, arrName) {
     return bitArray2Buffer(Object.entries(symbols).filter(([index, symbol]) => index.startsWith(arrName)).map(([index, symbol]) => witness[symbol['varIdx']] ));
+}
+
+function splitToWords(x, w, n, name) {
+    let t = bigInt(x);
+    w = bigInt(w);
+    n = bigInt(n);
+    const words = {};
+    for (let i = 0; i < n; ++i) {
+        words[`${name}[${i}]`] = `${t.mod(bigInt(2).pow(w))}`;
+        t = t.divide(bigInt(2).pow(w));
+    }
+    if (!t.isZero()) {
+        throw `Number ${x} does not fit in ${w * n} bits`;
+    }
+    return words;
 }
 
 module.exports = {

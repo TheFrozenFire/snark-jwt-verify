@@ -1,36 +1,27 @@
+pragma circom 2.0.0;
+
 include "../circomlib/circuits/sha256/constants.circom";
 include "../circomlib/circuits/sha256/sha256compression.circom";
 include "../circomlib/circuits/comparators.circom";
+include "calculate_total.circom";
 
-// This circuit returns the sum of the inputs.
-// n must be greater than 0.
-template CalculateTotal(n) {
-    signal input nums[n];
-    signal output sum;
+/*
+SHA256 Unsafe
+    Calculates the SHA256 hash of the input, using a signal to select the output round corresponding to the number of
+    non-empty input blocks. This implementation is referred to as "unsafe", as it relies upon the caller to ensure that
+    the input is padded correctly, and to ensure that the tBlock input corresponds to the actual terminating data block.
+    Crafted inputs could result in Length Extension Attacks.
 
-    signal sums[n];
-    sums[0] <== nums[0];
-
-    for (var i=1; i < n; i++) {
-        sums[i] <== sums[i - 1] + nums[i];
-    }
-
-    sum <== sums[n - 1];
-}
-
-// SHA256 Unsafe
-// Calculates the SHA256 hash of the input, using a signal to select the output round corresponding to the number of
-// non-empty input blocks. This implementation is referred to as "unsafe", as it relies upon the caller to ensure that
-// the input is padded correctly, and to ensure that the tBlock input corresponds to the actual terminating data block.
-// Crafted inputs could result in Length Extension Attacks.
-//
-// Inputs:
-// - in:     An array of blocks exactly nBlocks in length, each block containing an array of exactly 512 bits.
-//           Padding of the input according to RFC4634 Section 4.1 is left to the caller.
-//           Blocks following tBlock must be supplied, and *should* contain all zeroes
-// - tBlock: An integer corresponding to the terminating block of the input, which contains the message padding
-// Outputs:
-// - out:    An array of 256 bits corresponding to the SHA256 output as of the terminating block
+    Construction Parameters:
+    - nBlocks: Maximum number of 512-bit blocks for payload input
+    Inputs:
+    - in:     An array of blocks exactly nBlocks in length, each block containing an array of exactly 512 bits.
+              Padding of the input according to RFC4634 Section 4.1 is left to the caller.
+              Blocks following tBlock must be supplied, and *should* contain all zeroes
+    - tBlock: An integer corresponding to the terminating block of the input, which contains the message padding
+    Outputs:
+    - out:    An array of 256 bits corresponding to the SHA256 output as of the terminating block
+*/
 template Sha256_unsafe(nBlocks) {
     signal input in[nBlocks][512];
     signal input tBlock;
