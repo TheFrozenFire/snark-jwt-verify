@@ -28,9 +28,6 @@ template Sha256_unsafe(nBlocks) {
     
     signal output out[256];
 
-    var i;
-    var k;
-
     component ha0 = H(0);
     component hb0 = H(1);
     component hc0 = H(2);
@@ -42,12 +39,12 @@ template Sha256_unsafe(nBlocks) {
 
     component sha256compression[nBlocks];
 
-    for (i=0; i<nBlocks; i++) {
+    for(var i=0; i < nBlocks; i++) {
 
-        sha256compression[i] = Sha256compression() ;
+        sha256compression[i] = Sha256compression();
 
         if (i==0) {
-            for (k=0; k<32; k++ ) {
+            for(var k = 0; k < 32; k++) {
                 sha256compression[i].hin[0*32+k] <== ha0.out[k];
                 sha256compression[i].hin[1*32+k] <== hb0.out[k];
                 sha256compression[i].hin[2*32+k] <== hc0.out[k];
@@ -58,7 +55,7 @@ template Sha256_unsafe(nBlocks) {
                 sha256compression[i].hin[7*32+k] <== hh0.out[k];
             }
         } else {
-            for (k=0; k<32; k++ ) {
+            for(var k = 0; k < 32; k++) {
                 sha256compression[i].hin[32*0+k] <== sha256compression[i-1].out[32*0+31-k];
                 sha256compression[i].hin[32*1+k] <== sha256compression[i-1].out[32*1+31-k];
                 sha256compression[i].hin[32*2+k] <== sha256compression[i-1].out[32*2+31-k];
@@ -70,7 +67,7 @@ template Sha256_unsafe(nBlocks) {
             }
         }
 
-        for (k=0; k<512; k++) {
+        for (var k = 0; k < 512; k++) {
             sha256compression[i].inp[k] <== in[i][k];
         }
     }
@@ -81,7 +78,7 @@ template Sha256_unsafe(nBlocks) {
     component eqs[256][nBlocks];
 
     // For each bit of the output
-    for (k=0; k<256; k++) {
+    for(var k = 0; k < 256; k++) {
         calcTotal[k] = CalculateTotal(nBlocks);
         
         // For each possible block

@@ -1,4 +1,19 @@
 const bigInt = require("big-integer");
+const temp = require("temp");
+const path = require("path");
+const fs = require("fs");
+const circom_wasm = require("circom_tester").wasm;
+
+const chai = require("chai");
+const assert = chai.assert;
+
+var tmp = require("tmp-promise");
+
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
+
+const loadR1cs = require("r1csfile").load;
+const ZqField = require("ffjavascript").ZqField;
 
 function buffer2BitArray(b) {
     return [].concat(...Array.from(b.entries()).map(([index, byte]) => byte.toString(2).padStart(8, '0').split('').map(bit => bit == '1' ? 1 : 0) ))
@@ -26,18 +41,19 @@ function arrayChunk(array, chunk_size) {
     return Array(Math.ceil(array.length / chunk_size)).fill().map((_, index) => index * chunk_size).map(begin => array.slice(begin, begin + chunk_size));
 }
 
-function genInputs(input, nBlocks) {
-    var blocks = arrayChunk(padMessage(buffer2BitArray(Buffer.from(input))), 512);
-    const tBlock = blocks.length;
-    if(blocks.length < nBlocks) {
-        blocks = blocks.concat(Array(nBlocks-blocks.length).fill(Array(512).fill(0)))
+function genSha256Inputs(input, nCount, nWidth = 512, inParam = "in") {
+    var segments = arrayChunk(padMessage(buffer2BitArray(Buffer.from(input))), nWidth);
+    const tBlock = segments.length / (512 / nWidth);
+    
+    if(segments.length < nCount) {
+        segments = segments.concat(Array(nCount-segments.length).fill(Array(nWidth).fill(0)));
     }
     
-    if(blocks.length > nBlocks) {
+    if(segments.length > nCount) {
         throw new Error('Padded message exceeds maximum blocks supported by circuit');
     }
     
-    return { "in": blocks , "tBlock": tBlock };
+    return { [inParam]: segments, "tBlock": tBlock }; 
 }
 
 function getWitnessBuffer(witness, symbols, arrName) {
@@ -59,11 +75,30 @@ function splitToWords(x, w, n, name) {
     return words;
 }
 
+async function genMain(template_file, template_name, params = [], tester = circom_wasm) {
+    temp.track();
+    
+    const temp_circuit = await temp.open({prefix: template_name, suffix: ".circom"});
+    const include_path = path.relative(temp_circuit.path, template_file);
+    const params_string = JSON.stringify(params).slice(1, -1);
+    
+    fs.writeSync(temp_circuit.fd, `
+pragma circom 2.0.0;
+
+include "${include_path}";
+
+component main = ${template_name}(${params_string});
+    `);
+    
+    return circom_wasm(temp_circuit.path);
+}
+
 module.exports = {
     buffer2BitArray: buffer2BitArray,
     bitArray2Buffer: bitArray2Buffer,
     padMessage: padMessage,
     arrayChunk: arrayChunk,
-    genInputs: genInputs,
+    genSha256Inputs: genSha256Inputs,
+    genMain: genMain,
     getWitnessBuffer: getWitnessBuffer,
 }
