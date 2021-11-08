@@ -62,10 +62,11 @@ template ClaimProof(nCount, nWidth, claimLength) {
             sha256_blocks[b][s].in <== payload[payloadIndex];
             
             // The bit index going into the current SHA-256 block is offset by the segment number times the bit width
-            // of each payload segment. sOffset + i is then the bit offset within the block (0-511)
+            // of each payload segment. sOffset + i is then the bit offset within the block (0-511). Num2Bits outputs
+            // in left-hand LSB, so we reverse the ordering of the bits as they go into the SHA-256 circuit.
             var sOffset = s * nWidth;
             for(var i = 0; i < nWidth; i++) {
-                sha256.in[b][sOffset + i] <== sha256_blocks[b][s].out[i];
+                sha256.in[b][sOffset + i] <== sha256_blocks[b][s].out[nWidth - i - 1];
             }
         }
     }

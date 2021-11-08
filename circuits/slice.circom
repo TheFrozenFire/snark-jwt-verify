@@ -16,12 +16,12 @@ template Slice(inSize, outSize) {
         
         for(var j = 0; j < inSize; j++) {
             eqs[j][i] = IsEqual();
-            eqs[j][i].in[0] <== i;
+            eqs[j][i].in[0] <== j;
             eqs[j][i].in[1] <== offset + i;
             
             selector[i].nums[j] <== eqs[j][i].out * in[j];
         }
-        
+
         out[i] <== selector[i].sum;
     }
 }

@@ -27,7 +27,7 @@ describe("Unsafe SHA256", () => {
         
         const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.out").toString("hex");
         
-        assert.equal(hash, hash2);
+        assert.equal(hash2, hash);
     });
     
     it("Hashing produces expected output for partial last block", async () => {
@@ -40,7 +40,7 @@ describe("Unsafe SHA256", () => {
         
         const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.out").toString("hex");
         
-        assert.equal(hash, hash2);
+        assert.equal(hash2, hash);
     });
     
     it("Hashing produces expected output for less than nBlocks blocks", async () => {
@@ -53,7 +53,7 @@ describe("Unsafe SHA256", () => {
         
         const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.out").toString("hex");
         
-        assert.equal(hash, hash2);
+        assert.equal(hash2, hash);
     });
 });
 
