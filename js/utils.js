@@ -19,6 +19,10 @@ function bigIntArray2Bits(arr, intSize=16) {
     return [].concat(...arr.map(n => n.toString(2).padStart(intSize, '0').split(''))).map(bit => bit == '1' ? 1 : 0);
 }
 
+function bigIntArray2String(arr, intSize=16) {
+    return bitArray2Buffer(bigIntArray2Bits(arr, intSize)).toString();
+}
+
 // https://datatracker.ietf.org/doc/html/rfc4634#section-4.1
 function padMessage(bits) {
     const L = bits.length;
@@ -105,6 +109,7 @@ module.exports = {
     buffer2BitArray: buffer2BitArray,
     bitArray2Buffer: bitArray2Buffer,
     bigIntArray2Bits: bigIntArray2Bits,
+    bigIntArray2String: bigIntArray2String,
     padMessage: padMessage,
     arrayChunk: arrayChunk,
     genSha256Inputs: genSha256Inputs,

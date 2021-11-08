@@ -11,7 +11,7 @@ const utils = require("../js/utils");
 describe("Claim Proof", () => {
     const nCount = 64;
     const nWidth = 16;
-    const claimLength = 7;
+    const claimLength = 5;
     
     const hexBytesToSegment = 16/8/2;
     const segmentsToBlock = 512/nWidth;
@@ -63,7 +63,7 @@ describe("Claim Proof", () => {
         var inputs = utils.genSha256Inputs(input, nCount, nWidth, "payload");
         inputs["payload"] = inputs["payload"].map(bits => toBigIntBE(utils.bitArray2Buffer(bits)));
         
-        const claimPrefix = '"sub": ';
+        const claimPrefix = '"sub": "';
         const claimOffset = Math.floor((input.indexOf(claimPrefix) + claimPrefix.length) / (nWidth / 8));
         const expectedClaim = input.slice(claimOffset * (nWidth / 8), (claimOffset * (nWidth / 8)) + (claimLength * (nWidth / 8)));
         
@@ -75,7 +75,7 @@ describe("Claim Proof", () => {
         const witness = await cir.calculateWitness(inputs, true);
         
         const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.hash").toString("hex");
-        const claim = utils.bitArray2Buffer(utils.bigIntArray2Bits(utils.getWitnessArray(witness, cir.symbols, "main.claim"))).toString();
+        const claim = utils.bigIntArray2String(utils.getWitnessArray(witness, cir.symbols, "main.claim"));
         
         assert.equal(hash2, hash);
         assert.equal(claim, expectedClaim);
