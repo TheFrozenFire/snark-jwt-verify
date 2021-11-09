@@ -30,7 +30,7 @@ function genSha256Inputs(input, nCount, nWidth = 512, inParam = "in") {
     return { [inParam]: segments, "tBlock": tBlock }; 
 }
 
-function genClaimProofInputs(input, nCount, claimLength, claimField, nWidth = 16, inParam = "payload") {
+function genClaimProofInputs(input, nCount, claimField, nWidth = 16, inParam = "payload") {
   var inputs = genSha256Inputs(input, nCount, nWidth, inParam);
   inputs[inParam] = inputs[inParam].map(bits => toBigIntBE(utils.bitArray2Buffer(bits)));
   

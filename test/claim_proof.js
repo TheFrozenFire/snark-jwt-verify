@@ -40,7 +40,7 @@ describe("Claim Proof", () => {
         const input = '{ "sub": "1234567890", "name": "John Doe", "iat": 1516239022 }';
         const hash = crypto.createHash("sha256").update(input).digest("hex");
         
-        var inputs = circuit.genClaimProofInputs(input, nCount, claimLength, "sub", nWidth);
+        var inputs = circuit.genClaimProofInputs(input, nCount, "sub", nWidth);
         const expectedClaim = input.slice(inputs['claimOffset'] * (nWidth / 8), (inputs['claimOffset'] * (nWidth / 8)) + (claimLength * (nWidth / 8)));
         
         const witness = await cir.calculateWitness(inputs, true);
