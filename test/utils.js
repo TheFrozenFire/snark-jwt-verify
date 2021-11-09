@@ -2,6 +2,7 @@ const chai = require("chai");
 const assert = chai.assert;
 const crypto = require("crypto");
 
+const circuit = require("../js/circuit");
 const utils = require("../js/utils");
 
 describe("Circuit Utilities", () => {
@@ -18,7 +19,7 @@ describe("Circuit Utilities", () => {
         const input = crypto.randomBytes(512/8/2).toString("hex");
         
         const bits = utils.buffer2BitArray(Buffer.from(input));
-        const padded = utils.padMessage(bits);
+        const padded = circuit.padMessage(bits);
         
         assert.equal(bits.length, 512);
         assert.equal(padded.length, 1024); // Padding a 448+-bit message requires an additional block
@@ -30,7 +31,7 @@ describe("Circuit Utilities", () => {
         const input = crypto.randomBytes(512/8/2).toString("hex");
         
         const bits = utils.buffer2BitArray(Buffer.from(input)).slice(0, 447);
-        const padded = utils.padMessage(bits);
+        const padded = circuit.padMessage(bits);
         
         assert.equal(bits.length, 447);
         assert.equal(padded.length, 512);
@@ -42,7 +43,7 @@ describe("Circuit Utilities", () => {
         const input = crypto.randomBytes(512/8/2).toString("hex");
         
         const bits = utils.buffer2BitArray(Buffer.from(input)).slice(0, 412);
-        const padded = utils.padMessage(bits);
+        const padded = circuit.padMessage(bits);
         
         assert.equal(bits.length, 412);
         assert.equal(padded.length, 512);
