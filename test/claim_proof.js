@@ -8,6 +8,7 @@ const tester = require("circom_tester").wasm;
 
 const circuit = require("../js/circuit");
 const utils = require("../js/utils");
+const test = require("../js/test");
 
 describe("Claim Proof", () => {
     const nCount = 64;
@@ -20,12 +21,12 @@ describe("Claim Proof", () => {
     var cir;
 
     before(async() => {
-        cir = await utils.genMain(path.join(__dirname, "..", "circuits", "claim_proof.circom"), "ClaimProof", [nCount, nWidth, claimLength]);
+        cir = await test.genMain(path.join(__dirname, "..", "circuits", "claim_proof.circom"), "ClaimProof", [nCount, nWidth, claimLength]);
         await cir.loadSymbols();
     });
     
     it("Num2Bits converts inputs to left-hand LSB", async () => {
-        num2bits = await utils.genMain(path.join(__dirname, "..", "circomlib", "circuits", "bitify.circom"), "Num2Bits", [16]);
+        num2bits = await test.genMain(path.join(__dirname, "..", "circomlib", "circuits", "bitify.circom"), "Num2Bits", [16]);
         await num2bits.loadSymbols();
         
         input = crypto.randomBytes(2);

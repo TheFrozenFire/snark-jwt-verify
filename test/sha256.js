@@ -7,6 +7,7 @@ const tester = require("circom_tester").wasm;
 
 const circuit = require("../js/circuit");
 const utils = require("../js/utils");
+const test = require("../js/test");
 
 describe("Unsafe SHA256", () => {
     const nBlocks = 20;
@@ -14,7 +15,7 @@ describe("Unsafe SHA256", () => {
     var cir;
     
     before(async() => {
-        cir = await utils.genMain(path.join(__dirname, "..", "circuits", "sha256.circom"), "Sha256_unsafe", [20]);
+        cir = await test.genMain(path.join(__dirname, "..", "circuits", "sha256.circom"), "Sha256_unsafe", [20]);
         await cir.loadSymbols();
     });
 

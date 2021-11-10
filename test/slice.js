@@ -6,12 +6,13 @@ const crypto = require("crypto");
 const tester = require("circom_tester").wasm;
 
 const utils = require("../js/utils");
+const test = require("../js/test");
 
-describe("Claim Proof", () => {
+describe("Array Slice", () => {
     var cir;
 
     before(async() => {
-        cir = await utils.genMain(path.join(__dirname, "..", "circuits", "slice.circom"), "Slice", [6, 2]);
+        cir = await test.genMain(path.join(__dirname, "..", "circuits", "slice.circom"), "Slice", [6, 2]);
         await cir.loadSymbols();
     });
     
