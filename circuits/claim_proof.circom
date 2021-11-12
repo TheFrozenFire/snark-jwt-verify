@@ -33,6 +33,7 @@ template ClaimProof(nCount, nWidth, claimLength) {
     signal output claim[claimLength];
     
     // Segments must divide evenly into 512 bit blocks
+    assert((nCount * nWidth) % 512 == 0);
     assert(nWidth <= 512);
     assert(512 % nWidth == 0);
     
