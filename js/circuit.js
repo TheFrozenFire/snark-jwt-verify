@@ -34,7 +34,7 @@ function genClaimProofInputs(input, nCount, claimField, claimLength = undefined,
   var inputs = genSha256Inputs(input, nCount, nWidth, inParam);
   inputs[inParam] = inputs[inParam].map(bits => toBigIntBE(utils.bitArray2Buffer(bits)));
   
-  const claimPattern = new RegExp(`"${claimField}"\\:\\s+"`);
+  const claimPattern = new RegExp(`"${claimField}"\\:\\s*"`);
   const claimOffset = Math.floor(input.search(claimPattern) / (nWidth / 8));
   
   inputs = Object.assign({},
