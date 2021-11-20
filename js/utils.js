@@ -10,7 +10,7 @@ function trimEndByChar(string, character) {
 
 function getJSONFieldLength(input, field) {
     const json_input = JSON.parse(input);
-    const fieldNameLength = input.match(new RegExp(`"${field}"\\:\\s+`))[0].length;
+    const fieldNameLength = input.match(new RegExp(`"${field}"\\:\\s*`))[0].length;
     const fieldValueLength = JSON.stringify(json_input[field]).length;
     
     return fieldNameLength + fieldValueLength;
