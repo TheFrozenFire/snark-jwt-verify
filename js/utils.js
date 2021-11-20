@@ -2,6 +2,20 @@ function arrayChunk(array, chunk_size) {
     return Array(Math.ceil(array.length / chunk_size)).fill().map((_, index) => index * chunk_size).map(begin => array.slice(begin, begin + chunk_size));
 }
 
+function trimEndByChar(string, character) {
+  const arr = Array.from(string);
+  const last = arr.reverse().findIndex(char => char !== character);
+  return string.substring(0, string.length - last);
+}
+
+function getJSONFieldLength(input, field) {
+    const json_input = JSON.parse(input);
+    const fieldNameLength = input.match(new RegExp(`"${field}"\\:\\s+`))[0].length;
+    const fieldValueLength = JSON.stringify(json_input[field]).length;
+    
+    return fieldNameLength + fieldValueLength;
+}
+
 function buffer2BitArray(b) {
     return [].concat(...Array.from(b.entries()).map(([index, byte]) => byte.toString(2).padStart(8, '0').split('').map(bit => bit == '1' ? 1 : 0) ))
 }
@@ -36,6 +50,8 @@ function getWitnessBuffer(witness, symbols, arrName) {
 
 module.exports = {
     arrayChunk: arrayChunk,
+    trimEndByChar: trimEndByChar,
+    getJSONFieldLength: getJSONFieldLength,
     buffer2BitArray: buffer2BitArray,
     bitArray2Buffer: bitArray2Buffer,
     bigIntArray2Bits: bigIntArray2Bits,

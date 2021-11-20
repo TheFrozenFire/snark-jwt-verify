@@ -12,25 +12,27 @@ Claim Proof
     Construction Parameters:
     - nCount:          Number of payload inputs of nWidth size
     - nWidth:          Bit width of payload inputs
-    - claimLength:     Length of claim in nWidth segments
+    - maxClaimLength:  Maximum length of claim in nWidth segments
 
     Inputs:
     - payload[nCount]: Segments of payload as nWidth bit chunks
     - tBlock:          At which 512-bit block to select output hash
     - claimOffset:     Offset in nWidth segments to start extracting claim
+    - claimLength:     Number of nWidth segments to extract
     
     Outputs:
     - hash:            256-bit SHA256 hash output
     - claim:           nWidth-bit claim segments
 */
-template ClaimProof(nCount, nWidth, claimLength) {
+template ClaimProof(nCount, nWidth, maxClaimLength) {
     signal input payload[nCount];
     signal input tBlock;
     
     signal input claimOffset;
+    signal input claimLength;
     
     signal output hash[256];
-    signal output claim[claimLength];
+    signal output claim[maxClaimLength];
     
     // Segments must divide evenly into 512 bit blocks
     assert((nCount * nWidth) % 512 == 0);
@@ -47,8 +49,9 @@ template ClaimProof(nCount, nWidth, claimLength) {
     component sha256 = Sha256_unsafe(nBlocks);
     component sha256_blocks[nBlocks][nSegments];
     
-    component claimExtract = Slice(nCount, claimLength);
+    component claimExtract = Slice(nCount, maxClaimLength);
     claimExtract.offset <== claimOffset;
+    claimExtract.length <== claimLength;
     
     // For each 512-bit block going into SHA-256
     for(var b = 0; b < nBlocks; b++) {
@@ -81,7 +84,7 @@ template ClaimProof(nCount, nWidth, claimLength) {
         hash[i] <== sha256.out[i];
     }
     
-    for(var i = 0; i < claimLength; i++) {
+    for(var i = 0; i < maxClaimLength; i++) {
         claim[i] <== claimExtract.out[i];
     }
 }

@@ -13,7 +13,7 @@ const test = require("../js/test");
 describe("Claim Proof", () => {
     const nCount = 64;
     const nWidth = 16;
-    const claimLength = 10;
+    const maxClaimLength = 12;
     
     const hexBytesToSegment = 16/8/2;
     const segmentsToBlock = 512/nWidth;
@@ -21,7 +21,7 @@ describe("Claim Proof", () => {
     var cir;
 
     before(async() => {
-        cir = await test.genMain(path.join(__dirname, "..", "circuits", "claim_proof.circom"), "ClaimProof", [nCount, nWidth, claimLength]);
+        cir = await test.genMain(path.join(__dirname, "..", "circuits", "claim_proof.circom"), "ClaimProof", [nCount, nWidth, maxClaimLength]);
         await cir.loadSymbols();
     });
     
@@ -41,13 +41,15 @@ describe("Claim Proof", () => {
         const input = '{ "sub": "1234567890", "name": "John Doe", "iat": 1516239022 }';
         const hash = crypto.createHash("sha256").update(input).digest("hex");
         
-        var inputs = circuit.genClaimProofInputs(input, nCount, "sub", nWidth);
-        const expectedClaim = input.slice(inputs['claimOffset'] * (nWidth / 8), (inputs['claimOffset'] * (nWidth / 8)) + (claimLength * (nWidth / 8)));
+        const fieldLength = utils.getJSONFieldLength(input, "sub");
+        const claimLength = Math.ceil(fieldLength / (nWidth / 8));
+        var inputs = circuit.genClaimProofInputs(input, nCount, "sub", claimLength, nWidth);
+        const expectedClaim = '"sub": "1234567890",';
         
         const witness = await cir.calculateWitness(inputs, true);
         
         const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.hash").toString("hex");
-        const claim = utils.bigIntArray2String(utils.getWitnessArray(witness, cir.symbols, "main.claim"));
+        const claim = utils.trimEndByChar(utils.bigIntArray2String(utils.getWitnessArray(witness, cir.symbols, "main.claim")), '\u0000');
         
         assert.equal(hash2, hash);
         assert.equal(claim, expectedClaim);

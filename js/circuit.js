@@ -30,17 +30,24 @@ function genSha256Inputs(input, nCount, nWidth = 512, inParam = "in") {
     return { [inParam]: segments, "tBlock": tBlock }; 
 }
 
-function genClaimProofInputs(input, nCount, claimField, nWidth = 16, inParam = "payload") {
+function genClaimProofInputs(input, nCount, claimField, claimLength = undefined, nWidth = 16, inParam = "payload") {
   var inputs = genSha256Inputs(input, nCount, nWidth, inParam);
   inputs[inParam] = inputs[inParam].map(bits => toBigIntBE(utils.bitArray2Buffer(bits)));
   
-  const claimPattern = new RegExp(`"${claimField}"\\:\\s?"`);
+  const claimPattern = new RegExp(`"${claimField}"\\:\\s+"`);
   const claimOffset = Math.floor(input.search(claimPattern) / (nWidth / 8));
   
   inputs = Object.assign({},
       inputs,
       { "claimOffset": claimOffset }
   );
+  
+  if(claimLength !== undefined) {
+    inputs = Object.assign({},
+      inputs,
+      { "claimLength": claimLength }
+    );
+  }
   
   return inputs;
 }
