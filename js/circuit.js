@@ -15,6 +15,22 @@ function padMessage(bits) {
     return bits;
 }
 
+function genClaimParams(input, claimField, claimLength, nWidth) {
+  const claimPattern = new RegExp(`"${claimField}"\\:\\s*"`);
+  const claimOffset = Math.floor(input.search(claimPattern) / (nWidth / 8));
+  
+  var inputs = { "claimOffset": claimOffset };
+  
+  if(claimLength !== undefined) {
+    inputs = Object.assign({},
+      inputs,
+      { "claimLength": claimLength }
+    );
+  }
+  
+  return inputs;
+}
+
 function genSha256Inputs(input, nCount, nWidth = 512, inParam = "in") {
     var segments = utils.arrayChunk(padMessage(utils.buffer2BitArray(Buffer.from(input))), nWidth);
     const tBlock = segments.length / (512 / nWidth);
@@ -34,26 +50,41 @@ function genClaimProofInputs(input, nCount, claimField, claimLength = undefined,
   var inputs = genSha256Inputs(input, nCount, nWidth, inParam);
   inputs[inParam] = inputs[inParam].map(bits => toBigIntBE(utils.bitArray2Buffer(bits)));
   
-  const claimPattern = new RegExp(`"${claimField}"\\:\\s*"`);
-  const claimOffset = Math.floor(input.search(claimPattern) / (nWidth / 8));
-  
   inputs = Object.assign({},
-      inputs,
-      { "claimOffset": claimOffset }
+    inputs,
+    genClaimParams(input, claimField, claimLength, nWidth)
   );
   
-  if(claimLength !== undefined) {
-    inputs = Object.assign({},
-      inputs,
-      { "claimLength": claimLength }
-    );
-  }
+  return inputs;
+}
+
+function genJwtProofInputs(input, nCount, nWidth = 16, inParam = "payload") {
+  var inputs = genSha256Inputs(input, nCount, nWidth, inParam);
+  inputs[inParam] = inputs[inParam].map(bits => toBigIntBE(utils.bitArray2Buffer(bits)));
+  
+  inputs = Object.assign({},
+    inputs,
+    genClaimParams(input, "aud", nWidth=nWidth)
+  );
+  
+  inputs = Object.assign({},
+    inputs,
+    genClaimParams(input, "nonce", nWidth=nWidth)
+  );
+  
+  const subLength = Math.ceil(utils.getJSONFieldLength(input, "sub") / Math.ceil(nWidth / 8));
+  inputs = Object.assign({},
+    inputs,
+    genClaimParams(input, "sub", subLength, nWidth=nWidth)
+  );
   
   return inputs;
 }
 
 module.exports = {
     padMessage: padMessage,
+    genClaimParams: genClaimParams,
     genSha256Inputs: genSha256Inputs,
-    genClaimProofInputs: genClaimProofInputs
+    genClaimProofInputs: genClaimProofInputs,
+    genJwtProofInputs: genJwtProofInputs,
 }
