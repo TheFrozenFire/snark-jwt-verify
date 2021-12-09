@@ -1,49 +1,33 @@
 pragma circom 2.0.0;
 
 include "sha256.circom";
-include "slice.circom";
 include "../circomlib/circuits/bitify.circom";
 
 /*
 JWT Proof
     Takes a payload segmented into nWidth chunks and calculates a SHA256 hash, for which an RSA signature is known,
-    as well as extracting the audience, subject, and nonce claims from the payload to be publicly output.
+    as well as masking the payload to obscure private fields.
 
     Construction Parameters:
-    - nCount:             Number of payload inputs of nWidth size
-    - nWidth:             Bit width of payload inputs
-    - audienceLength:     Fixed length of audience claim in nWidth segments
-    - nonceLength:        Fixed length of nonce claim in nWidth segments
-    - maxSubjectLength:   Maximum length of subject claim in nWidth segments
+    - nCount:          Number of payload inputs of nWidth size
+    - nWidth:          Bit width of payload inputs
 
     Inputs:
     - payload[nCount]: Segments of payload as nWidth bit chunks
+    - mask[nCount]:    Binary mask of payload segments
     - tBlock:          At which 512-bit block to select output hash
-    - audienceOffset:  Offset in nWidth segments to start extracting audience claim
-    - nonceOffset:     Offset in nWidth segments to start extracting nonce claim
-    - subjectOffset:   Offset in nWidth segments to start extracting subject claim
-    - subjectLength:   Number of nWidth segments to extract for subject claim
     
     Outputs:
-    - hash:            256-bit SHA256 hash output
-    - audience:        Audience claim as nWidth-bit segments
-    - subject:         Subject claim as nWidth-bit segments
-    - nonce:           Nonce claim as nWidth-bit segments
+    - hash[256]:       SHA256 hash output
+    - masked[nCount]:  Masked payload
 */
-template JwtProof(nCount, nWidth, audienceLength, nonceLength, maxSubjectLength) {
+template JwtProof(nCount, nWidth) {
     signal input payload[nCount];
+    signal input mask[nCount];
     signal input tBlock;
     
-    signal input audienceOffset;
-    signal input nonceOffset;
-    
-    signal input subjectOffset;
-    signal input subjectLength;
-    
     signal output hash[256];
-    signal output audience[audienceLength];
-    signal output nonce[nonceLength];
-    signal output subject[maxSubjectLength];
+    signal output masked[nCount];
     
     // Segments must divide evenly into 512 bit blocks
     assert((nCount * nWidth) % 512 == 0);
@@ -87,30 +71,7 @@ template JwtProof(nCount, nWidth, audienceLength, nonceLength, maxSubjectLength)
         hash[i] <== sha256.out[i];
     }
     
-    component audienceExtract = SliceFixed(nCount, audienceLength);
-    component nonceExtract    = SliceFixed(nCount, nonceLength);
-    component subjectExtract  = Slice(nCount, maxSubjectLength);
-    
-    audienceExtract.offset <== audienceOffset;
-    nonceExtract.offset    <== nonceOffset;
-    subjectExtract.offset  <== subjectOffset;
-    subjectExtract.length  <== subjectLength;
-    
-    for(var p = 0; p < nCount; p++) {
-        audienceExtract.in[p] <== payload[p];
-        nonceExtract.in[p]    <== payload[p];
-        subjectExtract.in[p]  <== payload[p];
-    }
-    
-    for(var i = 0; i < audienceLength; i++) {
-        audience[i] <== audienceExtract.out[i];
-    }
-    
-    for(var i = 0; i < nonceLength; i++) {
-        nonce[i] <== nonceExtract.out[i];
-    }
-    
-    for(var i = 0; i < maxSubjectLength; i++) {
-        subject[i] <== subjectExtract.out[i];
+    for(var i = 0; i < nCount; i++) {
+        masked[i] <== payload[i] * mask[i];
     }
 }
