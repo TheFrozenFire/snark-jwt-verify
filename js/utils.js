@@ -16,6 +16,19 @@ function getJSONFieldLength(input, field) {
     return fieldNameLength + fieldValueLength;
 }
 
+function getBase64JSONSlice(input, field) {
+    const decoded = Buffer.from(input, 'base64').toString();
+    const fieldStart = decoded.indexOf(`"${field}"`);
+    const lead = trimEndByChar(Buffer.from(decoded.slice(0, fieldStart)).toString('base64'), '=');
+    const fieldLength = getJSONFieldLength(decoded, field);
+    const target = trimEndByChar(Buffer.from(decoded.slice(fieldStart, fieldStart + fieldLength)).toString('base64'), '=');
+    
+    const start = Math.floor(lead.length / 4) * 4;
+    const end = Math.ceil(((lead.length + target.length) - 1) / 4) * 4;
+    
+    return [start, end > (input.length - 1) ? input.length - 1 : end];
+}
+
 function buffer2BitArray(b) {
     return [].concat(...Array.from(b.entries()).map(([index, byte]) => byte.toString(2).padStart(8, '0').split('').map(bit => bit == '1' ? 1 : 0) ))
 }
@@ -28,8 +41,8 @@ function bigIntArray2Bits(arr, intSize=16) {
     return [].concat(...arr.map(n => n.toString(2).padStart(intSize, '0').split(''))).map(bit => bit == '1' ? 1 : 0);
 }
 
-function bigIntArray2String(arr, intSize=16) {
-    return bitArray2Buffer(bigIntArray2Bits(arr, intSize)).toString();
+function bigIntArray2Buffer(arr, intSize=16) {
+    return bitArray2Buffer(bigIntArray2Bits(arr, intSize));
 }
 
 function getWitnessValue(witness, symbols, varName) {
@@ -44,18 +57,24 @@ function getWitnessArray(witness, symbols, arrName) {
     return Object.entries(symbols).filter(([index, symbol]) => index.startsWith(`${arrName}[`)).map(([index, symbol]) => witness[symbol['varIdx']] );
 }
 
-function getWitnessBuffer(witness, symbols, arrName) {
-    return bitArray2Buffer(getWitnessArray(witness, symbols, arrName));
+function getWitnessBuffer(witness, symbols, arrName, varSize=1) {
+    const witnessArray = getWitnessArray(witness, symbols, arrName);
+    if(varSize == 1) {
+        return bitArray2Buffer(witnessArray);
+    } else {
+        return bigIntArray2Buffer(witnessArray, varSize);
+    }
 }
 
 module.exports = {
     arrayChunk: arrayChunk,
     trimEndByChar: trimEndByChar,
     getJSONFieldLength: getJSONFieldLength,
+    getBase64JSONSlice: getBase64JSONSlice,
     buffer2BitArray: buffer2BitArray,
     bitArray2Buffer: bitArray2Buffer,
     bigIntArray2Bits: bigIntArray2Bits,
-    bigIntArray2String: bigIntArray2String,
+    bigIntArray2Buffer: bigIntArray2Buffer,
     getWitnessValue: getWitnessValue,
     getWitnessMap: getWitnessMap,
     getWitnessArray: getWitnessArray,

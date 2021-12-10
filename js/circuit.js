@@ -31,6 +31,21 @@ function genClaimParams(input, claimField, claimLength, nWidth) {
   return inputs;
 }
 
+function genJwtMask(input, fields) {
+  const [header, payload] = input.split('.');
+  
+  var payloadMask = Array(payload.length).fill(0);
+  for(const field of fields) {
+    var [start, end] = utils.getBase64JSONSlice(payload, field);
+    
+    for(var i = start; i <= end; i++) {
+      payloadMask[i] = 1;
+    }
+  }
+  
+  return Array(header.length + 1).fill(0).concat(payloadMask);
+}
+
 function genSha256Inputs(input, nCount, nWidth = 512, inParam = "in") {
     var segments = utils.arrayChunk(padMessage(utils.buffer2BitArray(Buffer.from(input))), nWidth);
     const tBlock = segments.length / (512 / nWidth);
@@ -58,24 +73,13 @@ function genClaimProofInputs(input, nCount, claimField, claimLength = undefined,
   return inputs;
 }
 
-function genJwtProofInputs(input, nCount, nWidth = 16, inParam = "payload") {
+function genJwtProofInputs(input, nCount, fields, nWidth = 16, inParam = "payload") {
   var inputs = genSha256Inputs(input, nCount, nWidth, inParam);
   inputs[inParam] = inputs[inParam].map(bits => toBigIntBE(utils.bitArray2Buffer(bits)));
   
   inputs = Object.assign({},
     inputs,
-    genClaimParams(input, "aud", nWidth=nWidth)
-  );
-  
-  inputs = Object.assign({},
-    inputs,
-    genClaimParams(input, "nonce", nWidth=nWidth)
-  );
-  
-  const subLength = Math.ceil(utils.getJSONFieldLength(input, "sub") / Math.ceil(nWidth / 8));
-  inputs = Object.assign({},
-    inputs,
-    genClaimParams(input, "sub", subLength, nWidth=nWidth)
+    { "mask": genJwtMask(input, fields).concat(Array(nCount - input.length).fill(0)) }
   );
   
   return inputs;
@@ -84,6 +88,7 @@ function genJwtProofInputs(input, nCount, nWidth = 16, inParam = "payload") {
 module.exports = {
     padMessage: padMessage,
     genClaimParams: genClaimParams,
+    genJwtMask: genJwtMask,
     genSha256Inputs: genSha256Inputs,
     genClaimProofInputs: genClaimProofInputs,
     genJwtProofInputs: genJwtProofInputs,

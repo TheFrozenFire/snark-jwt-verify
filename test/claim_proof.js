@@ -49,7 +49,7 @@ describe("Claim Proof", () => {
         const witness = await cir.calculateWitness(inputs, true);
         
         const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.hash").toString("hex");
-        const claim = utils.trimEndByChar(utils.bigIntArray2String(utils.getWitnessArray(witness, cir.symbols, "main.claim")), '\u0000');
+        const claim = utils.trimEndByChar(utils.bigIntArray2Buffer(utils.getWitnessArray(witness, cir.symbols, "main.claim")).toString(), '\u0000');
         
         assert.equal(hash2, hash);
         assert.equal(claim, expectedClaim);
