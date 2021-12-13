@@ -21,7 +21,7 @@ JWT Proof
     - hash:             SHA256 hash output truncated to 248 bits
     - masked[inCount]:  Masked payload
 */
-template JwtProof(inCount, inWidth, outWidth, hashWidth) {
+template JwtProof(inCount, inWidth, outWidth) {
     // Segments must divide evenly into 512 bit blocks
     assert((inCount * inWidth) % 512 == 0);
     assert(inWidth <= 512);
@@ -45,7 +45,7 @@ template JwtProof(inCount, inWidth, outWidth, hashWidth) {
     signal input mask[inCount];
     signal input tBlock;
     
-    signal output hash;
+    signal output hash[2];
     signal output out[outCount];
     
     component sha256 = Sha256_unsafe(nBlocks);
@@ -74,11 +74,17 @@ template JwtProof(inCount, inWidth, outWidth, hashWidth) {
     }
     sha256.tBlock <== tBlock;
     
-    component hash_packer = Bits2Num(hashWidth);
-    for(var i = 0; i < hashWidth; i++) {
-        hash_packer.in[i] <== sha256.out[i + (256-hashWidth)];
+    component hash_packer[2];
+    hash_packer[0] = Bits2Num(128);
+    hash_packer[1] = Bits2Num(128);
+    for(var i = 0; i < 128; i++) {
+        hash_packer[0].in[i] <== sha256.out[i];
     }
-    hash <== hash_packer.out;
+    for(var i = 128; i < 256; i++) {
+        hash_packer[1].in[i - 128] <== sha256.out[i];
+    }
+    hash[0] <== hash_packer[0].out;
+    hash[1] <== hash_packer[1].out;
     
     component masked[inCount];
     for(var i = 0; i < inCount; i++) {
