@@ -1,7 +1,7 @@
 pragma circom 2.0.0;
 
 include "sha256.circom";
-include "../circomlib/circuits/bitify.circom";
+include "bitify.circom";
 
 /*
 JWT Proof
@@ -11,15 +11,17 @@ JWT Proof
     Construction Parameters:
     - inCount:          Number of payload inputs of inWidth size
     - inWidth:          Bit width of payload inputs
+    - outWidth:         Bit width of masked payload outputs
+    - hashWidth:        Bit width of truncated hash output
 
     Inputs:
     - payload[inCount]: Segments of payload as inWidth bit chunks
     - mask[inCount]:    Binary mask of payload segments
-    - tBlock:          At which 512-bit block to select output hash
+    - tBlock:           At which 512-bit block to select output hash
     
     Outputs:
-    - hash:             SHA256 hash output truncated to 248 bits
-    - masked[inCount]:  Masked payload
+    - hash:             SHA256 hash output truncated to hashWidth bits
+    - out[outCount]:    Masked payload
 */
 template JwtProof(inCount, inWidth, outWidth, hashWidth) {
     // Segments must divide evenly into 512 bit blocks
@@ -60,35 +62,35 @@ template JwtProof(inCount, inWidth, outWidth, hashWidth) {
             var payloadIndex = (b * nSegments) + s;
             
             // Decompose each segment into an array of individual bits
-            sha256_blocks[b][s] = Num2Bits(inWidth);
+            sha256_blocks[b][s] = Num2BitsLE(inWidth);
             sha256_blocks[b][s].in <== payload[payloadIndex];
             
             // The bit index going into the current SHA-256 block is offset by the segment number times the bit width
-            // of each payload segment. sOffset + i is then the bit offset within the block (0-511). Num2Bits outputs
-            // in left-hand LSB, so we reverse the ordering of the bits as they go into the SHA-256 circuit.
+            // of each payload segment. sOffset + i is then the bit offset within the block (0-511).
             var sOffset = s * inWidth;
             for(var i = 0; i < inWidth; i++) {
-                sha256.in[b][sOffset + i] <== sha256_blocks[b][s].out[inWidth - i - 1];
+                sha256.in[b][sOffset + i] <== sha256_blocks[b][s].out[i];
             }
         }
     }
     sha256.tBlock <== tBlock;
     
-    component hash_packer = Bits2Num(hashWidth);
+    component hash_packer = Bits2NumLE(hashWidth);
     for(var i = 0; i < hashWidth; i++) {
-        hash_packer.in[i] <== sha256.out[i + (256-hashWidth)];
+        // Endianness
+        hash_packer.in[i] <== sha256.out[i];
     }
     hash <== hash_packer.out;
-    
+        
     component masked[inCount];
     for(var i = 0; i < inCount; i++) {
-        masked[i] = Num2Bits(inWidth);
+        masked[i] = Num2BitsLE(inWidth);
         masked[i].in <== payload[i] * mask[i];
     }
-    
+
     component out_packer[outCount];
     for(var i = 0; i < outCount; i++) {
-        out_packer[i] = Bits2Num(outWidth);
+        out_packer[i] = Bits2NumLE(outWidth);
         
         for(var j = 0; j < outWidth; j++) {
             var oB = (i * outWidth) + j;

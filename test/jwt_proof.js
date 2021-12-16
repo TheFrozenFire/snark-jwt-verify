@@ -12,8 +12,10 @@ const utils = require("../js/utils");
 const test = require("../js/test");
 
 describe("JWT Proof", () => {
-    const nCount = 384;
-    const nWidth = 8;
+    const inCount = 384;
+    const inWidth = 8;
+    const outWidth = 128;
+    const hashWidth = 248;
     
     const jwt = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InBldmpiYS1welhGU0ZDcnRTYlg5SyJ9.eyJpc3MiOiJodHRwczovL2Rldi05aDQ3YWpjOS51cy5hdXRoMC5jb20vIiwic3ViIjoidHdpdHRlcnwzMzc4MzQxMiIsImF1ZCI6IlQxNWU2NDZiNHVoQXJ5eW9qNEdOUm9uNnpzNE1ySEZWIiwiaWF0IjoxNjM5MTczMDI4LCJleHAiOjE2MzkyMDkwMjgsIm5vbmNlIjoiNDQwMTdhODkifQ.Vg2Vv-NJXdCqLy_JF4ecEsU_NgaA3DXbjwPfqr-euuXc-WPeyF00yRDP6_PVCx9p8PAU48fCMfNAKEFemPpY5Trn8paeweFk6uWZWGR42vo6BShryLFGRdce0MfTEBdZVsYnx-PDFz5aRFYxNnZL8sv2DUJ4NQM_8Zmz2EI7sSV7_kHCoXz7UHIOAtN8_otxCRwvrR3xAJ9P-Qp43HhUqM0fiC4RC3YkVKHRARcWC4bdVLBpKa1BBs4cd2wQ_tzv15YHPEyy4ODZGSX_M9cic-95TcpvVSuymw3bGj6_a7EPxcs6BzZGWlBwsh2ltB6FcLsDuAxxCPIG39tZ3Arp6Q';
     const input = jwt.split('.').slice(0,2).join('.');
@@ -30,7 +32,7 @@ describe("JWT Proof", () => {
     var cir;
 
     before(async() => {
-        cir = await test.genMain(path.join(__dirname, "..", "circuits", "jwt_proof.circom"), "JwtProof", [nCount, nWidth]);
+        cir = await test.genMain(path.join(__dirname, "..", "circuits", "jwt_proof.circom"), "JwtProof", [inCount, inWidth, outWidth, hashWidth]);
         await cir.loadSymbols();
     });
     
@@ -44,15 +46,15 @@ describe("JWT Proof", () => {
     });
     
     it("Extract from Base64 JSON", async () => {
-        const hash = crypto.createHash("sha256").update(input).digest("hex");
+        const hash = crypto.createHash("sha256").update(input).digest("hex").slice(0, hashWidth / 4);
         const pubkey = await jose.importJWK(jwk);
         
-        var inputs = circuit.genJwtProofInputs(input, nCount, ["sub", "nonce"], nWidth);
+        var inputs = circuit.genJwtProofInputs(input, inCount, ["sub", "nonce"], inWidth);
         
         const witness = await cir.calculateWitness(inputs, true);
         
-        const hash2 = utils.getWitnessBuffer(witness, cir.symbols, "main.hash").toString("hex");
-        const masked = utils.getWitnessBuffer(witness, cir.symbols, "main.masked", varSize=nWidth).toString();
+        const hash2 = utils.getWitnessValue(witness, cir.symbols, "main.hash").toString(16);
+        const masked = utils.getWitnessBuffer(witness, cir.symbols, "main.out", varSize=outWidth).toString();
         const claims = masked.split(/\x00+/).filter(e => e !== '').map(e => Buffer.from(e, 'base64').toString());
         
         assert.equal(hash2, hash);
