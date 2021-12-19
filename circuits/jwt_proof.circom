@@ -29,12 +29,15 @@ template JwtProof(inCount, inWidth, outWidth, hashWidth) {
     assert(inWidth <= 512);
     assert(512 % inWidth == 0);
     
-    // Segments must divide evenly into outWidth output signals
-    assert((inCount * inWidth) % outWidth == 0);
-    assert(inWidth <= outWidth);
-    assert(outWidth % inWidth == 0);
+    var inBits = inCount * inWidth;
+    var outExtra = inBits % outWidth;
+    var outCount = (inBits - outExtra) / outWidth;
+    if(outExtra > 0) {
+        outCount += 1;
+    }
     
-    var outCount = (inCount * inWidth) / outWidth;
+    assert(inWidth <= outWidth);
+    assert(outCount * outWidth >= inCount * inWidth);
     
     // The number of payload segments, times the bit width of each is the bit length of the payload.
     // The payload is decomposed to 512-bit blocks for SHA-256
@@ -87,19 +90,26 @@ template JwtProof(inCount, inWidth, outWidth, hashWidth) {
         masked[i] = Num2BitsLE(inWidth);
         masked[i].in <== payload[i] * mask[i];
     }
-
+    
     component out_packer[outCount];
     for(var i = 0; i < outCount; i++) {
         out_packer[i] = Bits2NumLE(outWidth);
+    }
+    
+    for(var i = 0; i < inBits; i++) {
+        var oB = i % outWidth;
+        var o = (i - oB) / outWidth;
+        var m = (i - (i % inWidth)) / inWidth;
+        var mB = i % inWidth;
         
-        for(var j = 0; j < outWidth; j++) {
-            var oB = (i * outWidth) + j;
-            var m = (oB - (oB % inWidth)) / inWidth;
-            var mB = oB % inWidth;
-            
-            out_packer[i].in[j] <== masked[m].out[mB];
-        }
-        
+        out_packer[o].in[oB] <== masked[m].out[mB];
+    }
+    
+    for(var i = outExtra; i < outWidth; i++) {
+        out_packer[outCount - 1].in[i] <== 0;
+    }
+    
+    for(var i = 0; i < outCount; i++) {
         out[i] <== out_packer[i].out;
     }
 }
