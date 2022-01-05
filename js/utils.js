@@ -26,7 +26,7 @@ function getBase64JSONSlice(input, field) {
     const start = Math.floor(lead.length / 4) * 4;
     const end = Math.ceil(((lead.length + target.length) - 1) / 4) * 4;
     
-    return [start, end > (input.length - 1) ? input.length - 1 : end];
+    return [start, end >= input.length ? input.length : end];
 }
 
 function buffer2BitArray(b) {
