@@ -1,22 +1,26 @@
-const chai = require("chai");
-const path = require("path");
-const assert = chai.assert;
-const crypto = require("crypto");
+import { assert } from "chai";
 
-const tester = require("circom_tester").wasm;
-
-const circuit = require("../js/circuit");
-const utils = require("../js/utils");
-const test = require("../js/test");
+import { Witness, SymbolReader } from "@frozenfire/circom-witness"
+import { Config } from "@frozenfire/snark-jwt-verify"
+import fs from "fs"
 
 describe("Unsafe SHA256", () => {
+    const config = new Config(JSON.parse(fs.readFileSync("config.json").toString('utf-8')))
+    const constants = config.constants()
+
     const nBlocks = 20;
     const hexBytesToBlock = 512/8/2;
-    var cir;
+    const cir = config.buildEphemeral("sha256.circom", "Sha256_unsafe", [20]);
+
+    let calculator
     
     before(async() => {
-        cir = await test.genMain(path.join(__dirname, "..", "circuits", "sha256.circom"), "Sha256_unsafe", [20]);
-        await cir.loadSymbols();
+        const {command: cir_command} = await cir.compile()
+
+        calculator = new Witness(
+            fs.readFileSync(cir_command.paths.wasm),
+            (new SymbolReader(fs.readFileSync(cir_command.paths.sym).toString()).readSymbolMap())
+        )
     });
 
     it("Hashing produces expected output for filled blocks", async () => {
